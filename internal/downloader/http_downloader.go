@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strings"
+	"path/filepath"
 	"sync"
 
 	"github.com/k0kubun/go-ansi"
@@ -17,15 +17,17 @@ import (
 type HTTPDownloader struct {
 	workers int
 	client  *http.Client
+	resume  bool
 	wg      sync.WaitGroup
 	bar     *progressbar.ProgressBar
 }
 
-func NewHTTPDownloader(workers int) *HTTPDownloader {
+func NewHTTPDownloader(workers int, resume bool) *HTTPDownloader {
 	return &HTTPDownloader{
 		workers: workers,
 		client:  &http.Client{},
 		wg:      sync.WaitGroup{},
+		resume:  resume,
 	}
 }
 
@@ -53,8 +55,8 @@ func (d *HTTPDownloader) downloadMulti(URL string, Dst string, totalSize int) er
 
 	partSize := totalSize / d.workers
 	// Create temporary directory to store part files
-	partDir := d.getPartFileDir(Dst)
-	os.Mkdir(partDir, 0755)
+	partDir := fmt.Sprintf("%s/parts/", d.getFileDir(Dst))
+	os.MkdirAll(partDir, 0777)
 	defer os.RemoveAll(partDir)
 
 	d.wg.Add(d.workers)
@@ -63,20 +65,40 @@ func (d *HTTPDownloader) downloadMulti(URL string, Dst string, totalSize int) er
 	for i := 0; i < d.workers; i++ {
 		go func(i, rangeStart int) {
 			rangeEnd := rangeStart + partSize
+
+			// the last part should download the remaining bytes
 			if i == d.workers-1 {
 				rangeEnd = totalSize
 			}
-			d.downloadPart(URL, partDir, rangeStart, rangeEnd)
+
+			downloadedSize := 0
+
+			partFileName := d.getPartFileName(partDir, Dst, i)
+			// use resume download
+			if d.resume {
+				fileInfo, err := os.Stat(partFileName)
+				if err == nil {
+					downloadedSize = int(fileInfo.Size())
+				}
+				if err != nil && !os.IsNotExist(err) {
+					log.Fatalln(err)
+				}
+				d.bar.Add(downloadedSize)
+			}
+
+			d.downloadPart(URL, partFileName, rangeStart+downloadedSize, rangeEnd, i)
 		}(i, rangeStart)
+
 		rangeStart += partSize + 1
 	}
 
 	d.wg.Wait()
-	d.mergeParts(Dst)
+	d.mergeParts(partDir, Dst)
 
 	return nil
 }
 
+// Do not support resume download from breakpoint, because range header is not supported
 func (d *HTTPDownloader) downloadSingle(URL, Dst string) error {
 	log.Println("Unsupport multi-part download, downloading in single thread")
 	resp, err := d.client.Get(URL)
@@ -99,7 +121,7 @@ func (d *HTTPDownloader) downloadSingle(URL, Dst string) error {
 	return err
 }
 
-func (d *HTTPDownloader) downloadPart(URL, Dst string, rangeStart, rangeEnd int) {
+func (d *HTTPDownloader) downloadPart(URL, partFileName string, rangeStart, rangeEnd, i int) {
 	defer d.wg.Done()
 	if rangeStart >= rangeEnd {
 		return
@@ -117,14 +139,14 @@ func (d *HTTPDownloader) downloadPart(URL, Dst string, rangeStart, rangeEnd int)
 	defer resp.Body.Close()
 
 	flags := os.O_CREATE | os.O_WRONLY
-	partFile, err := os.OpenFile(d.getPartFileName(Dst, rangeStart), flags, 0666)
+	partFile, err := os.OpenFile(partFileName, flags, 0666)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Download part err:", err)
 	}
 	defer partFile.Close()
 
-	buf := make([]byte, 32*1024)
 	// use CopyBuffer to save memory
+	buf := make([]byte, 32*1024)
 	_, err = io.CopyBuffer(partFile, resp.Body, buf)
 	if err != nil {
 		// ignore EOF error
@@ -135,18 +157,22 @@ func (d *HTTPDownloader) downloadPart(URL, Dst string, rangeStart, rangeEnd int)
 	}
 }
 
-func (d *HTTPDownloader) getPartFileName(Dst string, i int) string {
-	return path.Join(Dst, fmt.Sprintf("%d.part", i))
+func (d *HTTPDownloader) getPartFileName(partDir, Dst string, i int) string {
+	filename := d.getFileName(Dst)
+	return fmt.Sprintf("%s%s-%d.part", partDir, filename, i)
 }
 
-func (d *HTTPDownloader) getPartFileDir(Dst string) string {
-	// get the file name without extension
-	return strings.SplitN(Dst, ".", 2)[0]
+func (d *HTTPDownloader) getFileName(Dst string) string {
+	return path.Base(Dst)
+}
+
+func (d *HTTPDownloader) getFileDir(Dst string) string {
+	return filepath.Dir(Dst)
 }
 
 func (d *HTTPDownloader) DownloadFile(URL, Dst string) error {
 	if Dst == "" {
-		Dst = path.Base(URL)
+		Dst = d.getFileName(URL)
 	}
 	resp, err := d.client.Head(URL)
 	if err != nil {
@@ -158,7 +184,7 @@ func (d *HTTPDownloader) DownloadFile(URL, Dst string) error {
 	return d.downloadSingle(URL, Dst)
 }
 
-func (d *HTTPDownloader) mergeParts(Dst string) error {
+func (d *HTTPDownloader) mergeParts(partDir, Dst string) error {
 	destFile, err := os.OpenFile(Dst, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
 		return err
@@ -166,7 +192,7 @@ func (d *HTTPDownloader) mergeParts(Dst string) error {
 	defer destFile.Close()
 
 	for i := 0; i < d.workers; i++ {
-		partFileName := d.getPartFileName(Dst, i)
+		partFileName := d.getPartFileName(partDir, Dst, i)
 		partFile, err := os.Open(partFileName)
 		if err != nil {
 			return err

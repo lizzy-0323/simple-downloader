@@ -10,16 +10,18 @@ import (
 
 func TestHTTPDownloadFile(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Accept-Ranges", "bytes")
+		w.Header().Set("Content-Length", "2048") // Simulate a 1KB file
 		w.Write([]byte("test content"))
 	}))
 	defer server.Close()
-	workers := 16
-	downloader := downloader.NewHTTPDownloader(workers)
-	dst := "./test.zip"
-	url := "https://github.com/schollz/progressbar/archive/refs/tags/v3.17.1.zip"
+	workers := 3
+	resume := true
+	downloader := downloader.NewHTTPDownloader(workers, resume)
+	dst := "./data/test.zip"
+	// url := "https://github.com/schollz/progressbar/archive/refs/tags/v3.17.1.zip"
 
-	err := downloader.DownloadFile(url, dst)
+	err := downloader.DownloadFile(server.URL, dst)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -29,5 +31,5 @@ func TestHTTPDownloadFile(t *testing.T) {
 		t.Fatalf("expected file to exist, got %v", err)
 	}
 
-	// os.Remove(dst)
+	// defer os.Remove(dst)
 }
