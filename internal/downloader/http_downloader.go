@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/k0kubun/go-ansi"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -31,27 +30,9 @@ func NewHTTPDownloader(workers int, resume bool) *HTTPDownloader {
 	}
 }
 
-func (d *HTTPDownloader) SetBar(length int) {
-	d.bar = progressbar.NewOptions(
-		length,
-		progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
-		progressbar.OptionEnableColorCodes(true),
-		progressbar.OptionShowBytes(true),
-		progressbar.OptionSetWidth(50),
-		progressbar.OptionSetDescription("downloading..."),
-		progressbar.OptionSetTheme(progressbar.Theme{
-			Saucer:        "[green]=[reset]",
-			SaucerHead:    "[green]>[reset]",
-			SaucerPadding: " ",
-			BarStart:      "[",
-			BarEnd:        "]",
-		}),
-	)
-}
-
 func (d *HTTPDownloader) downloadMulti(URL string, Dst string, totalSize int) error {
 	log.Println("Using Multi Part Download")
-	d.SetBar(totalSize)
+	d.bar = SetBar(totalSize)
 
 	partSize := totalSize / d.workers
 	// Create temporary directory to store part files
@@ -108,7 +89,7 @@ func (d *HTTPDownloader) downloadSingle(URL, Dst string) error {
 	defer resp.Body.Close()
 
 	// set bar based on content length
-	d.SetBar(int(resp.ContentLength))
+	d.bar = SetBar(int(resp.ContentLength))
 
 	f, err := os.OpenFile(Dst, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {

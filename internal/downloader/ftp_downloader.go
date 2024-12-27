@@ -7,72 +7,67 @@ import (
 	"os"
 
 	"github.com/jlaffaye/ftp"
-	"github.com/k0kubun/go-ansi"
 	"github.com/schollz/progressbar/v3"
 )
 
 // FTPDownloader is a struct that holds the FTP client
 type FTPDownloader struct {
-	client *ftp.ServerConn
-	bar    *progressbar.ProgressBar
-}
-
-func (d *FTPDownloader) SetBar(length int) {
-	d.bar = progressbar.NewOptions(
-		length,
-		progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
-		progressbar.OptionEnableColorCodes(true),
-		progressbar.OptionShowBytes(true),
-		progressbar.OptionSetWidth(50),
-		progressbar.OptionSetDescription("downloading..."),
-		progressbar.OptionSetTheme(progressbar.Theme{
-			Saucer:        "[green]=[reset]",
-			SaucerHead:    "[green]>[reset]",
-			SaucerPadding: " ",
-			BarStart:      "[",
-			BarEnd:        "]",
-		}),
-	)
+	Port int
+	bar  *progressbar.ProgressBar
 }
 
 // NewFTPDownloader creates a new FTPDownloader
-func NewFTPDownloader(Host string, Port int) (*FTPDownloader, error) {
-	URL := fmt.Sprintf("ftp://%s:%d", Host, Port)
-	u, err := url.Parse(URL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse FTP URL: %v", err)
+func NewFTPDownloader() *FTPDownloader {
+	return &FTPDownloader{
+		Port: 21,
 	}
+}
 
-	client, err := ftp.Dial(u.Host)
+func (d *FTPDownloader) GetConn(u *url.URL) (*ftp.ServerConn, error) {
+	addr := fmt.Sprintf("%s:%d", u.Host, d.Port)
+	client, err := ftp.Dial(addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to FTP server: %v", err)
+	}
+
+	return client, nil
+}
+
+// DownloadFile downloads a file from the FTP server
+func (d *FTPDownloader) DownloadFile(URL, Dst string) error {
+	// Parse the FTP URL
+	u, err := url.Parse(URL)
+	if err != nil {
+		return fmt.Errorf("failed to parse FTP URL: %v", err)
+	}
+
+	// Create a new FTP client
+	client, err := d.GetConn(u)
+	if err != nil {
+		return err
 	}
 
 	if u.User != nil {
 		password, _ := u.User.Password()
 		err = client.Login(u.User.Username(), password)
 		if err != nil {
-			return nil, fmt.Errorf("failed to login to FTP server: %v", err)
+			return fmt.Errorf("failed to login to FTP server: %v", err)
 		}
 	} else {
 		err = client.Login("anonymous", "anonymous")
 		if err != nil {
-			return nil, fmt.Errorf("failed to login to FTP server: %v", err)
+			return fmt.Errorf("failed to login to FTP server: %v", err)
 		}
 	}
+	defer client.Quit()
 
-	return &FTPDownloader{client: client}, nil
-}
-
-// DownloadFile downloads a file from the FTP server
-func (d *FTPDownloader) DownloadFile(URL, Dst string) error {
 	// Get the size of the file first, otherwise the server will end
-	size, err := d.client.FileSize(URL)
+	size, err := client.FileSize(u.Path)
 	if err != nil {
 		return fmt.Errorf("failed to get file size: %v", err)
 	}
 
-	resp, err := d.client.Retr(URL)
+	resp, err := client.Retr(u.Path)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve file from FTP server: %v", err)
 	}
@@ -85,7 +80,7 @@ func (d *FTPDownloader) DownloadFile(URL, Dst string) error {
 	defer localFile.Close()
 
 	// Create a progress bar
-	d.SetBar(int(size))
+	d.bar = SetBar(int(size))
 
 	// Copy the file content with progress bar
 	buf := make([]byte, 32*1024)
@@ -95,9 +90,4 @@ func (d *FTPDownloader) DownloadFile(URL, Dst string) error {
 	}
 
 	return nil
-}
-
-// Close closes the FTP connection
-func (d *FTPDownloader) Close() error {
-	return d.client.Quit()
 }

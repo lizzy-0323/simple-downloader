@@ -10,6 +10,6 @@ func NewRootCmd() *cobra.Command {
 		Short: "A tool for downloading datasets for ANN search.",
 		Long:  "A tool for downloading datasets for ANN search.",
 	}
-	rootCmd.AddCommand(downloadCmd)
+	rootCmd.AddCommand(NewDownloadCmd())
 	return rootCmd
 }
