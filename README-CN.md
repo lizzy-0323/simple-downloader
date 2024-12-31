@@ -1,48 +1,55 @@
-# 下载器项目
+# A simple downloader in Go
 
-该项目是一个用于下载向量检索数据集的工具，支持下载sift1m、sift1b、deep1b等数据集。
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+
+[English](./README.md)
+
+这是一个简单的 Go 语言下载器。它可以从一个给定的 URL 下载文件，并将其保存到指定的文件路径。目前支持 HTTP 和 FTP 协议。
 
 ## 安装
 
-1. 确保已安装Go语言环境。
-2. 克隆该项目到本地：
-   ```
-   git clone <项目地址>
-   ```
-3. 进入项目目录：
-   ```
-   cd downloader
-   ```
-4. 安装依赖：
-   ```
-   go mod tidy
-   ```
+你可以通过以下步骤安装该项目：
 
-## 使用
-
-### 启动工具
-
-运行以下命令启动下载器：
-```
-go run main.go
+```sh
+git clone <仓库地址>
 ```
 
-### 下载数据集
+导航到项目目录：
 
-使用以下命令下载特定的数据集：
-```
-go run main.go download --dataset <数据集名称>
+```sh
+cd go-downloader
 ```
 
-可用的数据集名称包括：
-- sift1m
-- sift1b
-- deep1b
+构建项目：
+
+```sh
+make build
+```
+
+## 使用方法
+
+你可以使用以下命令下载文件：
+
+```bash
+./go-downloader download [URL] -d [目标路径]
+```
+
+例如，要将文件下载到当前目录：
+
+```bash
+./go-downloader download http://example.com/file.zip -d .
+```
+
+## 选项
+
+-d, --dst : 指定下载文件的目标目录，默认为当前目录。
+
+-w, --workers : 指定用于下载的并发工作线程数量，默认为 16。
 
 ## 贡献
 
-欢迎提交问题和拉取请求，帮助我们改进该项目。
+欢迎贡献！请提交 Pull Request 或报告问题。
 
 ## 许可证
 
-该项目遵循MIT许可证。
+本项目根据 MIT 许可证授权。详情请参阅 LICENSE 文件。

@@ -1,52 +1,57 @@
-# ANN dataset downloader
+# A simple downloader in Go
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 [简体中文](./README-CN.md)
 
-This is a tool for downloading vector retrieval datasets, supporting the download of datasets such as sift1m, sift1b, deep1b, etc.
+This is a simple downloader in Go. It downloads a file from a given URL and saves it to a specified file path. Currently, it supports HTTP and FTP protocols.
 
 ## Installation
 
-1. Ensure that the Go language environment is installed.
-2. Clone the project to your local machine:
-   ```
-   git clone <project URL>
-   ```
-3. Enter the project directory:
-   ```
-   cd downloader
-   ```
-4. Install dependencies:
-   ```
-   go mod tidy
-   ```
+You can install the project by following these steps:
+
+1. Clone the repository:
+
+    ```sh
+    git clone <repository-url>
+    ```
+
+2. Navigate to the project directory:
+
+    ```sh
+    cd go-downloader
+    ```
+
+3. Build the project:
+
+    ```sh
+    make build
+    ```
 
 ## Usage
 
-### Start the Tool
+You can download files using the following command:
 
-Run the following command to start the downloader:
-```
-go run main.go
-```
-
-### Download Datasets
-
-Use the following command to download a specific dataset:
-```
-go run main.go download --dataset <dataset name>
+```bash
+./go-downloader download [URL] -d [destination]
 ```
 
-Available dataset names include:
-- sift1m
-- sift1b
-- deep1b
+For example, to download a file to the current directory:
+
+```bash
+./go-downloader download http://example.com/file.zip -d .
+```
+
+## Options
+
+-d, --dst : Specify the destination directory for the downloaded file, default is the current directory.
+
+-w, --workers : Specify the number of concurrent worker threads for downloading, default is 16.
 
 ## Contributing
 
-We welcome the submission of issues and pull requests to help us improve this project.
+Contributions are welcome! Please submit a Pull Request or report an issue.
 
 ## License
 
-This project is licensed under the MIT license.
+This project is licensed under the MIT License. See the LICENSE file for details. 

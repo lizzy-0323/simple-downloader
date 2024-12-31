@@ -1,7 +1,7 @@
 package main
 
 import (
-	"downloader/internal/cmd"
+	"downloader/cmd"
 	"log"
 	"os"
 )
