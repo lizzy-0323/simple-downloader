@@ -4,14 +4,15 @@
 
 [English](./README.md)
 
-这是一个简单的 Go 语言下载器。它可以从一个给定的 URL 下载文件，并将其保存到指定的文件路径。目前支持 HTTP 和 FTP 协议。
+这是一个简单的 Go 语言下载器。它可以从一个给定的 URL 下载文件，并将其保存到指定的文件路径。目前支持 HTTP , FTP, SCP 协议。
+其中，HTTP支持断点续传和多线程下载。
 
 ## 安装
 
 你可以通过以下步骤安装该项目：
 
 ```sh
-git clone <仓库地址>
+git clone https://github.com/lizzy-0323/simple-downloader.git
 ```
 
 导航到项目目录：
@@ -45,6 +46,8 @@ make build
 -d, --dst : 指定下载文件的目标目录，默认为当前目录。
 
 -w, --workers : 指定用于下载的并发工作线程数量，默认为 16。
+
+-P, --port: 指定 FTP 协议的端口号，默认为 21。
 
 ## 贡献
 
