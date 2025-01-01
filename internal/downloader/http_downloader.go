@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"path/filepath"
 	"sync"
 
 	"github.com/schollz/progressbar/v3"
@@ -36,7 +35,7 @@ func (d *HTTPDownloader) downloadMulti(URL string, Dst string, totalSize int) er
 
 	partSize := totalSize / d.workers
 	// Create temporary directory to store part files
-	partDir := fmt.Sprintf("%s/parts/", d.getFileDir(Dst))
+	partDir := fmt.Sprintf("%s/parts/", getFileDir(Dst))
 	os.MkdirAll(partDir, 0777)
 	defer os.RemoveAll(partDir)
 
@@ -67,7 +66,7 @@ func (d *HTTPDownloader) downloadMulti(URL string, Dst string, totalSize int) er
 				d.bar.Add(downloadedSize)
 			}
 
-			d.downloadPart(URL, partFileName, rangeStart+downloadedSize, rangeEnd, i)
+			d.downloadPart(URL, partFileName, rangeStart+downloadedSize, rangeEnd)
 		}(i, rangeStart)
 
 		rangeStart += partSize + 1
@@ -81,7 +80,7 @@ func (d *HTTPDownloader) downloadMulti(URL string, Dst string, totalSize int) er
 
 // Do not support resume download from breakpoint, because range header is not supported
 func (d *HTTPDownloader) downloadSingle(URL, Dst string) error {
-	log.Println("Unsupport multi-part download, downloading in single thread")
+	log.Println("Do not support multi-part download, downloading in single thread")
 	resp, err := d.client.Get(URL)
 	if err != nil {
 		return err
@@ -102,7 +101,7 @@ func (d *HTTPDownloader) downloadSingle(URL, Dst string) error {
 	return err
 }
 
-func (d *HTTPDownloader) downloadPart(URL, partFileName string, rangeStart, rangeEnd, i int) {
+func (d *HTTPDownloader) downloadPart(URL, partFileName string, rangeStart, rangeEnd int) {
 	defer d.wg.Done()
 	if rangeStart >= rangeEnd {
 		return
@@ -139,22 +138,29 @@ func (d *HTTPDownloader) downloadPart(URL, partFileName string, rangeStart, rang
 }
 
 func (d *HTTPDownloader) getPartFileName(partDir, Dst string, i int) string {
-	filename := d.getFileName(Dst)
+	filename := getFileName(Dst)
 	return fmt.Sprintf("%s%s-%d.part", partDir, filename, i)
 }
 
-func (d *HTTPDownloader) getFileName(Dst string) string {
-	return path.Base(Dst)
-}
-
-func (d *HTTPDownloader) getFileDir(Dst string) string {
-	return filepath.Dir(Dst)
-}
-
 func (d *HTTPDownloader) DownloadFile(URL, Dst string) error {
-	if Dst == "" {
-		Dst = d.getFileName(URL)
+	fileName := getFileName(URL)
+	if fileName == "" {
+		return fmt.Errorf("invalid destination file")
 	}
+	err := createDirIfNotExist(Dst)
+	if err != nil {
+		return fmt.Errorf("failed to create directory: %v", err)
+	}
+
+	// combine Dst and fileName
+	Dst = path.Join(Dst, fileName)
+
+	// check if Dst is available
+	if _, err := os.Stat(Dst); err == nil {
+		return fmt.Errorf("file already exists")
+	}
+
+	// check if the server supports multi-part download
 	resp, err := d.client.Head(URL)
 	if err != nil {
 		return err

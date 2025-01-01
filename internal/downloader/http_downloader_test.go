@@ -18,10 +18,10 @@ func TestHTTPDownloadFile(t *testing.T) {
 	workers := 3
 	resume := true
 	d := downloader.NewHTTPDownloader(workers, resume)
-	dst := "./data/test.zip"
-	// url := "https://github.com/schollz/progressbar/archive/refs/tags/v3.17.1.zip"
+	dst := "./data"
+	url := "https://github.com/schollz/progressbar/archive/refs/tags/v3.17.1.zip"
 
-	err := d.DownloadFile(server.URL, dst)
+	err := d.DownloadFile(url, dst)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

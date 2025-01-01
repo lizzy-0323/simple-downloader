@@ -11,9 +11,7 @@ import (
 
 type DownloadConfig struct {
 	Dst     string
-	Src     string
 	Workers int
-	ops     []string
 }
 
 // NewDownloadCmd returns a new download command
@@ -37,10 +35,8 @@ func NewDownloadCmd() *cobra.Command {
 			log.Printf("Download success")
 		},
 	}
-	downloadCmd.Flags().StringVarP(&downloadConfig.Dst, "dst", "d", ".", "destination directory")
-	downloadCmd.Flags().StringVarP(&downloadConfig.Src, "src", "s", "", "source directory")
+	downloadCmd.Flags().StringVarP(&downloadConfig.Dst, "dst", "d", ".", "destination directory to save the file")
 	downloadCmd.Flags().IntVarP(&downloadConfig.Workers, "workers", "w", 16, "number of workers")
-	downloadCmd.Flags().StringSliceVar(&downloadConfig.ops, "ops", []string{}, "operations to run")
 	return downloadCmd
 }
 

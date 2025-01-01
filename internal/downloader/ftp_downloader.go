@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path"
 
 	"github.com/jlaffaye/ftp"
 	"github.com/schollz/progressbar/v3"
@@ -35,6 +36,17 @@ func (d *FTPDownloader) GetConn(u *url.URL) (*ftp.ServerConn, error) {
 
 // DownloadFile downloads a file from the FTP server
 func (d *FTPDownloader) DownloadFile(URL, Dst string) error {
+	fileName := getFileName(URL)
+	if fileName == "" {
+		return fmt.Errorf("invalid destination file")
+	}
+	err := createDirIfNotExist(Dst)
+	if err != nil {
+		return fmt.Errorf("failed to create directory: %v", err)
+	}
+
+	// combine Dst and fileName
+	Dst = path.Join(Dst, fileName)
 	// Parse the FTP URL
 	u, err := url.Parse(URL)
 	if err != nil {

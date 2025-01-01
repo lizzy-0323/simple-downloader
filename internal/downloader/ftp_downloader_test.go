@@ -23,7 +23,7 @@ func TestNewFTPDownloader(t *testing.T) {
 func TestFTPDownloadFile(t *testing.T) {
 	d := downloader.NewFTPDownloader()
 	URL := "ftp://ftp.irisa.fr/local/texmex/corpus/siftsmall.tar.gz"
-	Dst := "./siftsmall.tar.gz"
+	Dst := "./data"
 	err := d.DownloadFile(URL, Dst)
 	if err != nil {
 		t.Fatalf("failed to download file: %v", err)
