@@ -6,6 +6,7 @@ on:
 
 env:
   tagName: ${{ github.ref_name }}
+  GO_VERSION : "1.22"
 
 jobs:
   release-downloader:
