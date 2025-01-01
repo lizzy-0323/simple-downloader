@@ -1,0 +1,53 @@
+name: release downloader
+on:
+  push:
+    tags:
+      - "go-downloader-[0-9]+.[0-9]+.[0-9]+"
+
+env:
+  tagName: ${{ github.ref_name }}
+
+jobs:
+  release-downloader:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Version variables
+        id: set_version_vars
+        run: |
+          echo "version=$(echo $tagName | grep -P '(\d*\.\d*\.\d*)' --only-matching)" >> $GITHUB_OUTPUT
+
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }} # The Go version to download (if necessary) and use.
+
+      - name: go mod vendor
+        run: go mod vendor
+
+      - name: build binary
+        run: make build
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ steps.set_version_vars.outputs.version }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./bin/go-downloader
+          asset_name: go-downloader-${{ steps.set_version_vars.outputs.version }}
+          asset_content_type: application/octet-stream

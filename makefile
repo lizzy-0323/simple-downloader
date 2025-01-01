@@ -1,12 +1,14 @@
 .PHONY: all build clean run
 
+BUILD_DIR = bin
+
 all: build
 
 build:
-	go build -o downloader main.go
+	go build -o $(BUILD_DIR)/downloader main.go
 
 clean:
-	rm -f downloader
+	rm -f $(BUILD_DIR)/downloader
 
 run: build
-	./downloader
+	$(BUILD_DIR)/downloader
