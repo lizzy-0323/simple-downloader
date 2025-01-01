@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"fmt"
+	utils "go-downloader/internal"
 	"io"
 	"net/url"
 	"os"
@@ -13,15 +14,16 @@ import (
 
 // FTPDownloader is a struct that holds the FTP client
 type FTPDownloader struct {
-	Port int
-	bar  *progressbar.ProgressBar
+	Port   int
+	bar    *progressbar.ProgressBar
+	client *ftp.ServerConn
 }
 
 // NewFTPDownloader creates a new FTPDownloader
-func NewFTPDownloader() *FTPDownloader {
+func NewFTPDownloader(Port int) (*FTPDownloader, error) {
 	return &FTPDownloader{
-		Port: 21,
-	}
+		Port: Port,
+	}, nil
 }
 
 func (d *FTPDownloader) GetConn(u *url.URL) (*ftp.ServerConn, error) {
@@ -36,50 +38,51 @@ func (d *FTPDownloader) GetConn(u *url.URL) (*ftp.ServerConn, error) {
 
 // DownloadFile downloads a file from the FTP server
 func (d *FTPDownloader) DownloadFile(URL, Dst string) error {
-	fileName := getFileName(URL)
+	fileName := utils.GetFileName(URL)
 	if fileName == "" {
 		return fmt.Errorf("invalid destination file")
 	}
-	err := createDirIfNotExist(Dst)
+	err := utils.CreateDirIfNotExist(Dst)
 	if err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}
 
 	// combine Dst and fileName
 	Dst = path.Join(Dst, fileName)
-	// Parse the FTP URL
+
+	// Parse the remote URL
 	u, err := url.Parse(URL)
 	if err != nil {
 		return fmt.Errorf("failed to parse FTP URL: %v", err)
 	}
 
 	// Create a new FTP client
-	client, err := d.GetConn(u)
+	d.client, err = d.GetConn(u)
 	if err != nil {
 		return err
 	}
 
 	if u.User != nil {
 		password, _ := u.User.Password()
-		err = client.Login(u.User.Username(), password)
+		err = d.client.Login(u.User.Username(), password)
 		if err != nil {
 			return fmt.Errorf("failed to login to FTP server: %v", err)
 		}
 	} else {
-		err = client.Login("anonymous", "anonymous")
+		err = d.client.Login("anonymous", "anonymous")
 		if err != nil {
 			return fmt.Errorf("failed to login to FTP server: %v", err)
 		}
 	}
-	defer client.Quit()
+	defer d.client.Quit()
 
 	// Get the size of the file first, otherwise the server will end
-	size, err := client.FileSize(u.Path)
+	size, err := d.client.FileSize(u.Path)
 	if err != nil {
 		return fmt.Errorf("failed to get file size: %v", err)
 	}
 
-	resp, err := client.Retr(u.Path)
+	resp, err := d.client.Retr(u.Path)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve file from FTP server: %v", err)
 	}

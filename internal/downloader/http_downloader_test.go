@@ -1,7 +1,7 @@
 package downloader_test
 
 import (
-	"downloader/internal/downloader"
+	"go-downloader/internal/downloader"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,7 +17,7 @@ func TestHTTPDownloadFile(t *testing.T) {
 	defer server.Close()
 	workers := 3
 	resume := true
-	d := downloader.NewHTTPDownloader(workers, resume)
+	d, _ := downloader.NewHTTPDownloader(workers, resume)
 	dst := "./data"
 	url := "https://github.com/schollz/progressbar/archive/refs/tags/v3.17.1.zip"
 

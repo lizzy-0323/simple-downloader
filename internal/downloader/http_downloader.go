@@ -2,6 +2,7 @@ package downloader
 
 import (
 	"fmt"
+	utils "go-downloader/internal"
 	"io"
 	"log"
 	"net/http"
@@ -20,13 +21,13 @@ type HTTPDownloader struct {
 	bar     *progressbar.ProgressBar
 }
 
-func NewHTTPDownloader(workers int, resume bool) *HTTPDownloader {
+func NewHTTPDownloader(workers int, resume bool) (*HTTPDownloader, error) {
 	return &HTTPDownloader{
 		workers: workers,
 		client:  &http.Client{},
 		wg:      sync.WaitGroup{},
 		resume:  resume,
-	}
+	}, nil
 }
 
 func (d *HTTPDownloader) downloadMulti(URL string, Dst string, totalSize int) error {
@@ -35,7 +36,7 @@ func (d *HTTPDownloader) downloadMulti(URL string, Dst string, totalSize int) er
 
 	partSize := totalSize / d.workers
 	// Create temporary directory to store part files
-	partDir := fmt.Sprintf("%s/parts/", getFileDir(Dst))
+	partDir := fmt.Sprintf("%s/parts/", utils.GetFileDir(Dst))
 	os.MkdirAll(partDir, 0777)
 	defer os.RemoveAll(partDir)
 
@@ -138,16 +139,16 @@ func (d *HTTPDownloader) downloadPart(URL, partFileName string, rangeStart, rang
 }
 
 func (d *HTTPDownloader) getPartFileName(partDir, Dst string, i int) string {
-	filename := getFileName(Dst)
+	filename := utils.GetFileName(Dst)
 	return fmt.Sprintf("%s%s-%d.part", partDir, filename, i)
 }
 
 func (d *HTTPDownloader) DownloadFile(URL, Dst string) error {
-	fileName := getFileName(URL)
+	fileName := utils.GetFileName(URL)
 	if fileName == "" {
 		return fmt.Errorf("invalid destination file")
 	}
-	err := createDirIfNotExist(Dst)
+	err := utils.CreateDirIfNotExist(Dst)
 	if err != nil {
 		return fmt.Errorf("failed to create directory: %v", err)
 	}

@@ -1,13 +1,14 @@
 package downloader_test
 
 import (
-	"downloader/internal/downloader"
+	"go-downloader/internal/downloader"
 	"net/url"
 	"testing"
 )
 
 func TestNewFTPDownloader(t *testing.T) {
-	d := downloader.NewFTPDownloader()
+	d, _ := downloader.NewFTPDownloader(21)
+
 	URL := "ftp://ftp.irisa.fr/local/texmex/corpus/siftsmall.tar.gz"
 	u, err := url.Parse(URL)
 	if err != nil {
@@ -21,7 +22,7 @@ func TestNewFTPDownloader(t *testing.T) {
 }
 
 func TestFTPDownloadFile(t *testing.T) {
-	d := downloader.NewFTPDownloader()
+	d, _ := downloader.NewFTPDownloader(21)
 	URL := "ftp://ftp.irisa.fr/local/texmex/corpus/siftsmall.tar.gz"
 	Dst := "./data"
 	err := d.DownloadFile(URL, Dst)

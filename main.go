@@ -1,7 +1,7 @@
 package main
 
 import (
-	"downloader/cmd"
+	"go-downloader/cmd"
 	"log"
 	"os"
 )

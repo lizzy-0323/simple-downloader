@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"downloader/internal/downloader"
 	"errors"
+	"go-downloader/internal/downloader"
 	"log"
 	"net/url"
 
@@ -11,6 +11,7 @@ import (
 
 type DownloadConfig struct {
 	Dst     string
+	Port    int
 	Workers int
 }
 
@@ -24,7 +25,7 @@ func NewDownloadCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			url := args[0]
-			d, err := getDownloader(url, downloadConfig.Workers)
+			d, err := getDownloader(url, downloadConfig)
 			if err != nil {
 				log.Fatalf("Failed to get downloader: %v", err)
 			}
@@ -37,19 +38,22 @@ func NewDownloadCmd() *cobra.Command {
 	}
 	downloadCmd.Flags().StringVarP(&downloadConfig.Dst, "dst", "d", ".", "destination directory to save the file")
 	downloadCmd.Flags().IntVarP(&downloadConfig.Workers, "workers", "w", 16, "number of workers")
+	downloadCmd.Flags().IntVarP(&downloadConfig.Port, "port", "P", 21, "port for the ftp protocol")
 	return downloadCmd
 }
 
-func getDownloader(rawURL string, workers int) (downloader.Downloader, error) {
+func getDownloader(rawURL string, downloadConfig *DownloadConfig) (downloader.Downloader, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, err
 	}
 	switch u.Scheme {
 	case "http":
-		return downloader.NewHTTPDownloader(workers, true), nil
+		return downloader.NewHTTPDownloader(downloadConfig.Workers, true)
 	case "ftp":
-		return downloader.NewFTPDownloader(), nil
+		return downloader.NewFTPDownloader(downloadConfig.Port)
+	case "scp":
+		return downloader.NewSCPDownloader()
 	default:
 		return nil, errors.New("unsupported protocol")
 	}
