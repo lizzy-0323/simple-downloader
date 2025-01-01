@@ -6,7 +6,8 @@ on:
 
 env:
   tagName: ${{ github.ref_name }}
-  GO_VERSION : "1.22"
+  GO_VERSION : "1.23"
+  BINARY_NAME : go-downloader
 
 jobs:
   release-downloader:
@@ -49,6 +50,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/go-downloader
-          asset_name: go-downloader-${{ steps.set_version_vars.outputs.version }}
+          asset_path: ./bin/${{env.BINARY_NAME}}
+          asset_name: ${{env.BINARY_NAME}}-${{ steps.set_version_vars.outputs.version }}
           asset_content_type: application/octet-stream
